@@ -1,5 +1,6 @@
 use std::collections::{HashSet, VecDeque};
 use std::fmt::{Debug, Formatter};
+use std::time::Instant;
 use rand::Rng;
 use crate::Cell::{Discovered, Pin};
 use crate::Item::Empty;
@@ -18,12 +19,12 @@ enum GameState {
     Loss,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Item {
     Bomb,
     Empty(u8),
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Cell {
     Hidden(Item),
     Pin(Item),
@@ -113,7 +114,6 @@ impl Game {
         let field = &mut self.field;
         match &field[*y][*x] {
             Cell::Hidden(item) => {
-                println!("Discovering: {},{}", x, y);
                 match item {
                     Item::Bomb => {
                         self.state = GameState::Loss;
@@ -154,6 +154,7 @@ fn fill_area(field: &mut Vec<Vec<Cell>>, start_row: usize, start_col: usize, hid
     let cols = field[0].len() as isize;
     let rows = field.len() as isize;
     let directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)];
+    let mut explored = vec![vec![false;cols as usize];rows as usize];
     let mut queue = VecDeque::new();
     queue.push_back((start_row, start_col));
     while let Some((row, col)) = queue.pop_front() {
@@ -171,7 +172,10 @@ fn fill_area(field: &mut Vec<Vec<Cell>>, start_row: usize, start_col: usize, hid
                 }
                 let (r, c) = (row as usize, col as usize);
                 if let Cell::Hidden(Empty(_)) = field[r][c] {
-                    queue.push_back((r, c));
+                    if !explored[r][c]{
+                        queue.push_back((r, c));
+                        explored[r][c] = true;
+                    }
                 }
             }
         }
@@ -179,9 +183,11 @@ fn fill_area(field: &mut Vec<Vec<Cell>>, start_row: usize, start_col: usize, hid
 }
 
 fn main() {
-    let mut game = Game::new(10, 5);
-    println!("{:?}", &game);
-    println!("{:?};{:?}", &game.bombs, &game.bombs.len());
-    // game.discover(&8, &5);
-    println!("{:?}", &game)
+    // println!("{:?}", &game);
+    // println!("{:?};{:?}", &game.bombs, &game.bombs.len());
+    let now = Instant::now();
+    let mut game = Game::new(30, 30);
+    let elapsed = now.elapsed();
+    game.discover(&8, &5);
+    println!("{:?}\n{:?}", &game, elapsed);
 }
